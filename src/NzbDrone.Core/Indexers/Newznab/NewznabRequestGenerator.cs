@@ -69,37 +69,51 @@ namespace NzbDrone.Core.Indexers.Newznab
             var pageableRequests = new IndexerPageableRequestChain();
             var searchCategories = SearchMediaTypeHelper.FilterCategoriesForMediaType(Settings.Categories, SearchMediaTypeHelper.GetRequestedMediaType(searchCriteria));
 
+            var authorQuery = searchCriteria.AuthorQuery;
+            var bookQuery = searchCriteria.BookQuery;
+            var transliteratedAuthor = searchCriteria.AuthorQueryTransliterated ?? authorQuery;
+            var transliteratedBook = searchCriteria.BookQueryTransliterated ?? bookQuery;
+
             if (SupportsBookSearch)
             {
-                AddBookPageableRequests(pageableRequests,
+                pageableRequests.AddTier();
+                AddVariant(pageableRequests,
                     searchCategories,
-                    $"&author={NewsnabifyTitle(searchCriteria.AuthorQuery)}&title={NewsnabifyTitle(searchCriteria.BookQuery)}");
+                    "book",
+                    $"&author={NewsnabifyTitle(authorQuery)}&title={NewsnabifyTitle(bookQuery)}",
+                    $"&author={NewsnabifyTitle(transliteratedAuthor)}&title={NewsnabifyTitle(transliteratedBook)}");
 
-                AddBookPageableRequests(pageableRequests,
+                pageableRequests.AddTier();
+                AddVariant(pageableRequests,
                     searchCategories,
-                    $"&title={NewsnabifyTitle(searchCriteria.BookQuery)}");
+                    "book",
+                    $"&title={NewsnabifyTitle(bookQuery)}",
+                    $"&title={NewsnabifyTitle(transliteratedBook)}");
             }
 
             if (SupportsSearch)
             {
                 pageableRequests.AddTier();
 
-                pageableRequests.Add(GetPagedRequests(MaxPages,
+                AddVariant(pageableRequests,
                     searchCategories,
                     "search",
-                    $"&q={NewsnabifyTitle(searchCriteria.BookQuery)}+{NewsnabifyTitle(searchCriteria.AuthorQuery)}"));
+                    $"&q={NewsnabifyTitle(bookQuery)}+{NewsnabifyTitle(authorQuery)}",
+                    $"&q={NewsnabifyTitle(transliteratedBook)}+{NewsnabifyTitle(transliteratedAuthor)}");
 
-                pageableRequests.Add(GetPagedRequests(MaxPages,
+                AddVariant(pageableRequests,
                     searchCategories,
                     "search",
-                    $"&q={NewsnabifyTitle(searchCriteria.AuthorQuery)}+{NewsnabifyTitle(searchCriteria.BookQuery)}"));
+                    $"&q={NewsnabifyTitle(authorQuery)}+{NewsnabifyTitle(bookQuery)}",
+                    $"&q={NewsnabifyTitle(transliteratedAuthor)}+{NewsnabifyTitle(transliteratedBook)}");
 
                 pageableRequests.AddTier();
 
-                pageableRequests.Add(GetPagedRequests(MaxPages,
+                AddVariant(pageableRequests,
                     searchCategories,
                     "search",
-                    $"&q={NewsnabifyTitle(searchCriteria.BookQuery)}"));
+                    $"&q={NewsnabifyTitle(bookQuery)}",
+                    $"&q={NewsnabifyTitle(transliteratedBook)}");
             }
 
             return pageableRequests;
@@ -114,6 +128,14 @@ namespace NzbDrone.Core.Indexers.Newznab
                 AddBookPageableRequests(pageableRequests,
                     Settings.Categories,
                     $"&author={NewsnabifyTitle(searchCriteria.AuthorQuery)}");
+
+                if (searchCriteria.AuthorQueryTransliterated != null)
+                {
+                    pageableRequests.Add(GetPagedRequests(MaxPages,
+                        Settings.Categories,
+                        "book",
+                        $"&author={NewsnabifyTitle(searchCriteria.AuthorQueryTransliterated)}"));
+                }
             }
 
             if (SupportsSearch)
@@ -124,6 +146,14 @@ namespace NzbDrone.Core.Indexers.Newznab
                     Settings.Categories,
                     "search",
                     $"&q={NewsnabifyTitle(searchCriteria.AuthorQuery)}"));
+
+                if (searchCriteria.AuthorQueryTransliterated != null)
+                {
+                    pageableRequests.Add(GetPagedRequests(MaxPages,
+                        Settings.Categories,
+                        "search",
+                        $"&q={NewsnabifyTitle(searchCriteria.AuthorQueryTransliterated)}"));
+                }
             }
 
             return pageableRequests;
@@ -134,6 +164,16 @@ namespace NzbDrone.Core.Indexers.Newznab
             chain.AddTier();
 
             chain.Add(GetPagedRequests(MaxPages, categories, "book", $"{parameters}"));
+        }
+
+        private void AddVariant(IndexerPageableRequestChain chain, IEnumerable<int> categories, string type, string original, string transliterated)
+        {
+            chain.Add(GetPagedRequests(MaxPages, categories, type, original));
+
+            if (transliterated != original)
+            {
+                chain.Add(GetPagedRequests(MaxPages, categories, type, transliterated));
+            }
         }
 
         private IEnumerable<IndexerRequest> GetPagedRequests(int maxPages, IEnumerable<int> categories, string searchType, string parameters)
