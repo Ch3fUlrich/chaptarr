@@ -69,7 +69,10 @@ namespace NzbDrone.Core.Indexers.Newznab
             var pageableRequests = new IndexerPageableRequestChain();
             var searchCategories = SearchMediaTypeHelper.FilterCategoriesForMediaType(Settings.Categories, SearchMediaTypeHelper.GetRequestedMediaType(searchCriteria));
 
-            if (SupportsBookSearch)
+            var mainTitle = BookSearchCriteria.GetMainSearchTitle(searchCriteria.BookTitle, searchCriteria.Author?.Name);
+            var hasBookTitle = !string.IsNullOrWhiteSpace(mainTitle);
+
+            if (SupportsBookSearch && hasBookTitle)
             {
                 AddBookPageableRequests(pageableRequests,
                     searchCategories,
@@ -80,7 +83,7 @@ namespace NzbDrone.Core.Indexers.Newznab
                     $"&title={NewsnabifyTitle(searchCriteria.BookQuery)}");
             }
 
-            if (SupportsSearch)
+            if (SupportsSearch && hasBookTitle)
             {
                 pageableRequests.AddTier();
 
@@ -100,6 +103,57 @@ namespace NzbDrone.Core.Indexers.Newznab
                     searchCategories,
                     "search",
                     $"&q={NewsnabifyTitle(searchCriteria.BookQuery)}"));
+            }
+
+            if (searchCriteria.SeriesName.IsNotNullOrWhiteSpace())
+            {
+                var supportsBookSearch = SupportsBookSearch;
+                var supportsSearch = SupportsSearch;
+                var includeTitleVariant = searchCriteria.SeriesTitleQuery.IsNotNullOrWhiteSpace() && !TitleQueryContainsSeries(searchCriteria);
+                var includePositionVariant = searchCriteria.SeriesPositionQuery.IsNotNullOrWhiteSpace();
+
+                if ((supportsBookSearch || supportsSearch) && (includeTitleVariant || includePositionVariant))
+                {
+                    pageableRequests.AddTier();
+
+                    if (supportsBookSearch)
+                    {
+                        if (includeTitleVariant)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages,
+                                searchCategories,
+                                "book",
+                                $"&title={NewsnabifyTitle(searchCriteria.SeriesTitleQuery)}"));
+                        }
+
+                        if (includePositionVariant)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages,
+                                searchCategories,
+                                "book",
+                                $"&title={NewsnabifyTitle(searchCriteria.SeriesPositionQuery)}"));
+                        }
+                    }
+
+                    if (supportsSearch)
+                    {
+                        if (includeTitleVariant)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages,
+                                searchCategories,
+                                "search",
+                                $"&q={NewsnabifyTitle(searchCriteria.SeriesTitleQuery)}"));
+                        }
+
+                        if (includePositionVariant)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages,
+                                searchCategories,
+                                "search",
+                                $"&q={NewsnabifyTitle(searchCriteria.SeriesPositionQuery)}"));
+                        }
+                    }
+                }
             }
 
             return pageableRequests;
@@ -171,6 +225,31 @@ namespace NzbDrone.Core.Indexers.Newznab
         {
             title = title.Replace("+", " ");
             return Uri.EscapeDataString(title);
+        }
+
+        private static bool TitleQueryContainsSeries(BookSearchCriteria searchCriteria)
+        {
+            if (string.IsNullOrWhiteSpace(searchCriteria.SeriesName))
+            {
+                return false;
+            }
+
+            var mainTitle = BookSearchCriteria.GetMainSearchTitle(searchCriteria.BookTitle, searchCriteria.Author?.Name);
+            if (string.IsNullOrWhiteSpace(mainTitle))
+            {
+                return false;
+            }
+
+            var seriesQuery = searchCriteria.SeriesQuery;
+            if (string.IsNullOrWhiteSpace(seriesQuery))
+            {
+                return false;
+            }
+
+            var normalizedBookQuery = searchCriteria.BookQuery.Replace('+', ' ').ToLowerInvariant();
+            var normalizedSeriesQuery = seriesQuery.Replace('+', ' ').ToLowerInvariant();
+
+            return normalizedBookQuery.Contains(normalizedSeriesQuery);
         }
     }
 }
