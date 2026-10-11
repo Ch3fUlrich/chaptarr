@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using NzbDrone.Core.Books;
 using NzbDrone.Core.Parser;
 
 namespace NzbDrone.Core.IndexerSearch.Definitions
 {
     public class BookSearchCriteria : SearchCriteriaBase
     {
+        private static readonly Regex PlainNumberOrDecimalRegex = new Regex(@"^\d+(\.\d+)?$", RegexOptions.Compiled);
+
         public string BookTitle { get; set; }
         public int BookYear { get; set; }
         public string BookIsbn { get; set; }
@@ -18,6 +23,79 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
         public string BookQuery => GetQueryTitle(GetMainSearchTitle(BookTitle, Author?.Name));
         /// <summary>Title query with German umlauts transliterated (ae/oe/ue/ss); null when the title has none.</summary>
         public string BookQueryTransliterated => GetTransliteratedQueryTitle(GetMainSearchTitle(BookTitle, Author?.Name));
+
+        public string SeriesName => Books?.FirstOrDefault()?.SeriesName;
+        public string SeriesPosition => Books?.FirstOrDefault()?.SeriesPosition;
+
+        public string SeriesQuery => string.IsNullOrWhiteSpace(SeriesName) ? null : GetQueryTitle(SeriesName);
+
+        public string SeriesTitleQuery
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(SeriesName) || string.IsNullOrWhiteSpace(BookTitle))
+                {
+                    return null;
+                }
+
+                string bookQuery;
+                try
+                {
+                    bookQuery = BookQuery;
+                }
+                catch (ArgumentException)
+                {
+                    return null;
+                }
+
+                if (string.IsNullOrWhiteSpace(bookQuery))
+                {
+                    return null;
+                }
+
+                return GetQueryTitle(SeriesName) + "+" + bookQuery;
+            }
+        }
+
+        public string SeriesPositionQuery
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(SeriesName) || string.IsNullOrWhiteSpace(SeriesPosition))
+                {
+                    return null;
+                }
+
+                var normalizedPosition = NormalizeSeriesPosition(SeriesPosition);
+                if (string.IsNullOrWhiteSpace(normalizedPosition))
+                {
+                    return null;
+                }
+
+                return GetQueryTitle(SeriesName) + "+" + GetQueryTitle(normalizedPosition);
+            }
+        }
+
+        internal static string NormalizeSeriesPosition(string position)
+        {
+            if (string.IsNullOrWhiteSpace(position))
+            {
+                return null;
+            }
+
+            var trimmed = position.Trim();
+            if (!PlainNumberOrDecimalRegex.IsMatch(trimmed))
+            {
+                return null;
+            }
+
+            if (trimmed.EndsWith(".0"))
+            {
+                trimmed = trimmed.Substring(0, trimmed.Length - 2);
+            }
+
+            return trimmed;
+        }
 
         internal static string GetMainSearchTitle(string title, string author)
         {

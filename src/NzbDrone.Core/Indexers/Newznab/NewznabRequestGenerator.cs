@@ -116,6 +116,55 @@ namespace NzbDrone.Core.Indexers.Newznab
                     $"&q={NewsnabifyTitle(transliteratedBook)}");
             }
 
+            if (searchCriteria.SeriesName.IsNotNullOrWhiteSpace())
+            {
+                var includeTitleVariant = searchCriteria.SeriesTitleQuery.IsNotNullOrWhiteSpace() && !TitleQueryContainsSeries(searchCriteria);
+                var includePositionVariant = searchCriteria.SeriesPositionQuery.IsNotNullOrWhiteSpace();
+
+                if ((SupportsBookSearch || SupportsSearch) && (includeTitleVariant || includePositionVariant))
+                {
+                    pageableRequests.AddTier();
+
+                    if (SupportsBookSearch)
+                    {
+                        if (includeTitleVariant)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages,
+                                searchCategories,
+                                "book",
+                                $"&title={NewsnabifyTitle(searchCriteria.SeriesTitleQuery)}"));
+                        }
+
+                        if (includePositionVariant)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages,
+                                searchCategories,
+                                "book",
+                                $"&title={NewsnabifyTitle(searchCriteria.SeriesPositionQuery)}"));
+                        }
+                    }
+
+                    if (SupportsSearch)
+                    {
+                        if (includeTitleVariant)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages,
+                                searchCategories,
+                                "search",
+                                $"&q={NewsnabifyTitle(searchCriteria.SeriesTitleQuery)}"));
+                        }
+
+                        if (includePositionVariant)
+                        {
+                            pageableRequests.Add(GetPagedRequests(MaxPages,
+                                searchCategories,
+                                "search",
+                                $"&q={NewsnabifyTitle(searchCriteria.SeriesPositionQuery)}"));
+                        }
+                    }
+                }
+            }
+
             return pageableRequests;
         }
 
@@ -211,6 +260,46 @@ namespace NzbDrone.Core.Indexers.Newznab
         {
             title = title.Replace("+", " ");
             return Uri.EscapeDataString(title);
+        }
+
+        private static bool TitleQueryContainsSeries(BookSearchCriteria searchCriteria)
+        {
+            var seriesName = searchCriteria.SeriesName?.Trim();
+            if (string.IsNullOrWhiteSpace(seriesName))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchCriteria.BookTitle) &&
+                searchCriteria.BookTitle.Contains(seriesName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            try
+            {
+                var seriesQuery = searchCriteria.SeriesQuery;
+                if (!string.IsNullOrWhiteSpace(seriesQuery) &&
+                    !string.IsNullOrWhiteSpace(searchCriteria.BookQuery) &&
+                    searchCriteria.BookQuery.Contains(seriesQuery, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(searchCriteria.BookQuery))
+                {
+                    var normalizedBookQuery = searchCriteria.BookQuery.Replace("+", " ");
+                    if (normalizedBookQuery.Contains(seriesName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            return false;
         }
     }
 }
