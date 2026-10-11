@@ -16,6 +16,7 @@ namespace NzbDrone.Core.IndexerSearch.Definitions
         // Including the author here can double-apply author terms (hurting recall) and breaks book-search endpoints
         // that expect a clean title (e.g., Newznab's t=book&author=...&title=...).
         public string BookQuery => GetQueryTitle(GetMainSearchTitle(BookTitle, Author?.Name));
+        public string BookQueryTransliterated => GetTransliteratedQueryTitle(GetMainSearchTitle(BookTitle, Author?.Name));
 
         internal static string GetMainSearchTitle(string title, string author)
         {
