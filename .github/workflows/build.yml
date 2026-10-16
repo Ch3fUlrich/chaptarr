@@ -41,15 +41,16 @@ jobs:
     with:
       selector_repo: Ch3fUlrich/AutoOS
       selector_ref: 46d0483300ba360eb838c87fcb6f09bf46059640
-      runs_on: ${{ toJSON((github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.CI_LINUX_RUNS_ON && fromJSON(vars.CI_LINUX_RUNS_ON) || 'ubuntu-latest') }}
-      full: ${{ github.event_name == 'workflow_dispatch' && inputs.full }}
+      runs_on: ${{ toJSON((github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || 'ubuntu-latest') }}
+      # every non-PR event (push, release workflow_call, dispatch) is a full run
+      full: ${{ github.event_name != 'pull_request' }}
 
   # Cheap repo guards (formerly the first steps of every build leg): once, always.
   guards:
     name: Repo guards
     needs: smart
     if: ${{ needs.smart.outputs.full == 'true' || fromJSON(needs.smart.outputs.jobs).guards }}
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.CI_LINUX_RUNS_ON && fromJSON(vars.CI_LINUX_RUNS_ON) || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || 'ubuntu-latest' }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       with:
@@ -112,15 +113,13 @@ jobs:
   build:
     needs: smart
     if: ${{ needs.smart.outputs.full == 'true' || fromJSON(needs.smart.outputs.jobs).dotnet }}
-    # Self-hosted Linux slot when the repo variable CI_LINUX_RUNS_ON says so (JSON
-    # runs-on); otherwise the hosted image, as before. A selected PR run builds the
-    # Linux leg only; the full run adds Windows and macOS unless CI_ONLY_LINUX=true
-    # (a repo with no hosted runners available).
-    runs-on: ${{ matrix.os == 'ubuntu-latest' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.CI_LINUX_RUNS_ON && fromJSON(vars.CI_LINUX_RUNS_ON) || matrix.os }}
+    # Linux leg on the self-hosted slot (same-repo runs only), Windows and macOS on
+    # the hosted images as before. A selected PR run builds the Linux leg only.
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(needs.smart.outputs.full == 'true' && vars.CI_ONLY_LINUX != 'true' && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-latest"]') }}
+        os: ${{ fromJSON(needs.smart.outputs.full == 'true' && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-latest"]') }}
 
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -185,7 +184,7 @@ jobs:
   postgres-migrations:
     needs: smart
     if: ${{ needs.smart.outputs.full == 'true' || fromJSON(needs.smart.outputs.jobs).postgres }}
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.CI_LINUX_RUNS_ON && fromJSON(vars.CI_LINUX_RUNS_ON) || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || 'ubuntu-latest' }}
     services:
       postgres:
         image: postgres:16
@@ -280,7 +279,7 @@ jobs:
     name: CI merge gate
     if: always()
     needs: [smart, guards, build, postgres-migrations]
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.CI_LINUX_RUNS_ON && fromJSON(vars.CI_LINUX_RUNS_ON) || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || 'ubuntu-latest' }}
     permissions:
       contents: read
       statuses: write

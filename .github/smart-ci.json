@@ -904,12 +904,6 @@
    "jobs": [
     "dotnet"
    ]
-  },
-  {
-   "paths": [
-    "frontend/**"
-   ],
-   "jobs": []
   }
  ]
 }
