@@ -75,7 +75,8 @@
     "Download",
     "History",
     "MediaFiles",
-    "Organizer"
+    "Organizer",
+    "Housekeeping"
    ],
    "jobs": [
     "dotnet"
@@ -110,7 +111,8 @@
     "Profiles",
     "Queue",
     "RootFolders",
-    "Validation"
+    "Validation",
+    "Housekeeping"
    ],
    "jobs": [
     "dotnet"
@@ -177,7 +179,8 @@
     "Indexers",
     "MediaFiles",
     "Queue",
-    "RemotePathMappings"
+    "RemotePathMappings",
+    "Configuration"
    ],
    "jobs": [
     "dotnet"
@@ -256,7 +259,8 @@
     "CustomFormats",
     "Http",
     "ImportLists",
-    "Profiles"
+    "Profiles",
+    "Datastore"
    ],
    "jobs": [
     "dotnet"
@@ -295,7 +299,9 @@
     "Jobs",
     "MediaFiles",
     "Queue",
-    "RemotePathMappings"
+    "RemotePathMappings",
+    "Datastore",
+    "History"
    ],
    "jobs": [
     "dotnet"
@@ -369,7 +375,8 @@
     "Http",
     "ImportLists",
     "MediaFiles",
-    "MetadataSource"
+    "MetadataSource",
+    "Validation"
    ],
    "jobs": [
     "dotnet"
@@ -382,7 +389,8 @@
    "tests": [
     "Configuration",
     "Http",
-    "Notifications"
+    "Notifications",
+    "Extras"
    ],
    "jobs": [
     "dotnet"
@@ -395,7 +403,13 @@
    "tests": [
     "Books",
     "MediaFiles",
-    "Organizer"
+    "Organizer",
+    "Configuration",
+    "Api",
+    "DecisionEngine",
+    "Download",
+    "Extras",
+    "RemotePathMappings"
    ],
    "jobs": [
     "dotnet"
