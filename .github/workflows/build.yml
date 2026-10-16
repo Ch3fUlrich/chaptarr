@@ -33,14 +33,14 @@ jobs:
   # CI-SMART-SELECT (D-1475): a PR push runs only what its diff needs (map:
   # .github/smart-ci.json). The FULL suite runs on the merge-ready label,
   # workflow_dispatch, every push, every release call, and whenever the selection is
-  # unknown or a workflow / dependency / CI file changed. Pinned to a branch of the
-  # shared workflow until it merges; re-pin to a SHA afterwards.
+  # unknown or a workflow / dependency / CI file changed. Pinned to a SHA of the
+  # shared workflow.
   smart:
     name: Smart CI select
-    uses: Ch3fUlrich/AutoOS/.github/workflows/smart-ci.yml@lane/ci-smart-select
+    uses: Ch3fUlrich/AutoOS/.github/workflows/smart-ci.yml@46d0483300ba360eb838c87fcb6f09bf46059640
     with:
       selector_repo: Ch3fUlrich/AutoOS
-      selector_ref: lane/ci-smart-select
+      selector_ref: 46d0483300ba360eb838c87fcb6f09bf46059640
       runs_on: ${{ toJSON((github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.CI_LINUX_RUNS_ON && fromJSON(vars.CI_LINUX_RUNS_ON) || 'ubuntu-latest') }}
       full: ${{ github.event_name == 'workflow_dispatch' && inputs.full }}
 
@@ -293,22 +293,35 @@ jobs:
           EVENT: ${{ github.event_name }}
           FULL: ${{ needs.smart.outputs.full }}
           REASON: ${{ needs.smart.outputs.reason }}
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          RESULTS: smart=${{ needs.smart.result }} guards=${{ needs.guards.result }} build=${{ needs.build.result }} postgres=${{ needs.postgres-migrations.result }}
         run: |
           echo "event=$EVENT full=$FULL results=$RESULTS reason=$REASON"
           ctx="Full suite (merge-ready)"
+          # curl, not gh: the self-hosted runner image has no gh, and a status that is
+          # never posted would leave the full-suite requirement unenforced.
           post() {
-            curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json"               "https://api.github.com/repos/$REPO/statuses/$SHA"               -d "$(python3 -c 'import json,sys; print(json.dumps({"state": sys.argv[1], "context": sys.argv[2], "description": sys.argv[3]}))' "$1" "$ctx" "$2")" >/dev/null               || echo "::warning::could not set the $ctx status"
+            # the token goes in through stdin (-H @-), never into argv where ps could show it
+            printf 'Authorization: Bearer %s\n' "$GH_TOKEN" | curl -fsS -X POST -H @- -H "Accept: application/vnd.github+json" \
+              "${GITHUB_API_URL:-https://api.github.com}/repos/$REPO/statuses/$SHA" \
+              -d "{\"state\":\"$1\",\"context\":\"$ctx\",\"description\":\"$2\"}" >/dev/null \
+              || echo "::warning::could not set the $ctx status"
           }
-          for r in $RESULTS; do
+          for pair in $RESULTS; do
+            name="${pair%%=*}"; r="${pair#*=}"
             case "$r" in
-              success|skipped) ;;
-              *) post failure "a CI job ended $r"; echo "::error::a CI job ended $r"; exit 1 ;;
+              success) ;;
+              skipped)
+                if [ "$FULL" = true ]; then
+                  post failure "full run but $name was skipped"; echo "::error::full run but $name was skipped"; exit 1
+                fi ;;
+              *) post failure "$name ended $r"; echo "::error::$name ended $r"; exit 1 ;;
             esac
           done
           if [ "$EVENT" = pull_request ] && [ "$FULL" != true ]; then
             post pending "selected-only run: add the merge-ready label for the full suite"
             echo "::notice::selected-only run passed; the full suite (label merge-ready or dispatch full=true) is still required before merge"
-          else
+          elif [ "$FULL" = true ]; then
             post success "full suite passed"
+          else
+            post failure "not a full run"; echo "::error::not a pull request and not a full run: refusing to report success"; exit 1
           fi
