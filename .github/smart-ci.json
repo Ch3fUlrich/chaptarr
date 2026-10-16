@@ -1,0 +1,909 @@
+{
+ "version": 1,
+ "comment": "CI-SMART-SELECT. Tests are Chaptarr.Core.Test sub-namespaces. Unmapped path = full run. Cross-cutting areas (Datastore, Messaging, Configuration, Parser, Profiles, Qualities, ...) are deliberately unmapped.",
+ "jobs": [
+  "guards",
+  "dotnet",
+  "postgres"
+ ],
+ "always_jobs": [
+  "guards"
+ ],
+ "ignore": [
+  "docs/**",
+  "**/*.md",
+  "Logo/**",
+  ".github/ISSUE_TEMPLATE/**",
+  ".github/CODEOWNERS",
+  "LICENSE"
+ ],
+ "rules": [
+  {
+   "paths": [
+    "src/NzbDrone.Core/Books/Repositories/**",
+    "src/NzbDrone.Core/Books/Search/**"
+   ],
+   "tests": [],
+   "jobs": [
+    "postgres"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/AuthorStats/**"
+   ],
+   "tests": [
+    "Api",
+    "AuthorStats",
+    "Books"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Authors/**"
+   ],
+   "tests": [
+    "MediaFiles"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Backup/**"
+   ],
+   "tests": [
+    "Backup",
+    "Jobs"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Blocklisting/**"
+   ],
+   "tests": [
+    "Blocklisting",
+    "CustomFormats",
+    "DecisionEngine",
+    "Download",
+    "History",
+    "MediaFiles",
+    "Organizer",
+    "Housekeeping"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Books/**"
+   ],
+   "tests": [
+    "Api",
+    "AuthorStats",
+    "Blocklisting",
+    "Books",
+    "CustomFormats",
+    "Datastore",
+    "DecisionEngine",
+    "Download",
+    "Extras",
+    "History",
+    "Http",
+    "ImportLists",
+    "IndexerSearch",
+    "Indexers",
+    "MediaCover",
+    "MediaFiles",
+    "MetadataSource",
+    "Notifications",
+    "Organizer",
+    "Parser",
+    "PendingImport",
+    "Profiles",
+    "Queue",
+    "RootFolders",
+    "Validation",
+    "Housekeeping"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/CustomFormats/**"
+   ],
+   "tests": [
+    "Api",
+    "Books",
+    "Configuration",
+    "CustomFormats",
+    "DecisionEngine",
+    "Download",
+    "History",
+    "MediaFiles",
+    "Organizer",
+    "Profiles"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/DecisionEngine/**"
+   ],
+   "tests": [
+    "Api",
+    "DecisionEngine",
+    "Download",
+    "IndexerSearch",
+    "Indexers",
+    "MediaFiles"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/DiskSpace/**"
+   ],
+   "tests": [
+    "DiskSpace"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Download/**"
+   ],
+   "tests": [
+    "Api",
+    "Blocklisting",
+    "DecisionEngine",
+    "Download",
+    "History",
+    "IndexerSearch",
+    "Indexers",
+    "MediaFiles",
+    "Queue",
+    "RemotePathMappings",
+    "Configuration"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Extras/**"
+   ],
+   "tests": [
+    "Extras",
+    "MediaFiles"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/HealthCheck/**"
+   ],
+   "tests": [
+    "HealthCheck",
+    "Http"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/History/**"
+   ],
+   "tests": [
+    "Books",
+    "CustomFormats",
+    "DecisionEngine",
+    "Download",
+    "History",
+    "MediaFiles",
+    "Organizer",
+    "Queue"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Housekeeping/**"
+   ],
+   "tests": [
+    "Housekeeping"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Http/**"
+   ],
+   "tests": [
+    "Http"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/ImportLists/**"
+   ],
+   "tests": [
+    "Books",
+    "CustomFormats",
+    "Http",
+    "ImportLists",
+    "Profiles",
+    "Datastore"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/IndexerSearch/**"
+   ],
+   "tests": [
+    "Books",
+    "Commands",
+    "DecisionEngine",
+    "Download",
+    "ImportLists",
+    "IndexerSearch",
+    "Indexers",
+    "Parser"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Indexers/**"
+   ],
+   "tests": [
+    "Blocklisting",
+    "Configuration",
+    "DecisionEngine",
+    "Download",
+    "Http",
+    "IndexerSearch",
+    "Indexers",
+    "Jobs",
+    "MediaFiles",
+    "Queue",
+    "RemotePathMappings",
+    "Datastore",
+    "History"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Jobs/**"
+   ],
+   "tests": [
+    "Jobs"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/MediaCover/**"
+   ],
+   "tests": [
+    "Api",
+    "Books",
+    "Commands",
+    "Extras",
+    "Http",
+    "MediaCover",
+    "MediaFiles",
+    "MetadataSource"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/MediaFiles/**"
+   ],
+   "tests": [
+    "Api",
+    "AuthorStats",
+    "Books",
+    "Commands",
+    "CustomFormats",
+    "Datastore",
+    "DecisionEngine",
+    "Download",
+    "Extras",
+    "HealthCheck",
+    "History",
+    "MediaCover",
+    "MediaFiles",
+    "MetadataSource",
+    "Notifications",
+    "Organizer",
+    "Parser",
+    "Profiles",
+    "Queue"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/MetadataSource/**"
+   ],
+   "tests": [
+    "Api",
+    "Books",
+    "Http",
+    "ImportLists",
+    "MediaFiles",
+    "MetadataSource",
+    "Validation"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Notifications/**"
+   ],
+   "tests": [
+    "Configuration",
+    "Http",
+    "Notifications",
+    "Extras"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Organizer/**"
+   ],
+   "tests": [
+    "Books",
+    "MediaFiles",
+    "Organizer",
+    "Configuration",
+    "Api",
+    "DecisionEngine",
+    "Download",
+    "Extras",
+    "RemotePathMappings"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/ProgressMessaging/**"
+   ],
+   "tests": [
+    "MediaFiles"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Queue/**"
+   ],
+   "tests": [
+    "Api",
+    "DecisionEngine",
+    "Download",
+    "IndexerSearch",
+    "Queue"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/RemotePathMappings/**"
+   ],
+   "tests": [
+    "Download",
+    "RemotePathMappings"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/RootFolders/**"
+   ],
+   "tests": [
+    "Api",
+    "Books",
+    "CustomFormats",
+    "Datastore",
+    "DiskSpace",
+    "Extras",
+    "ImportLists",
+    "MediaFiles",
+    "Notifications",
+    "PendingImport",
+    "Profiles",
+    "RemotePathMappings",
+    "RootFolders"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/NzbDrone.Core/Update/**"
+   ],
+   "tests": [
+    "Update"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Api.V1/**"
+   ],
+   "tests": [
+    "Api"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Api/**"
+   ],
+   "tests": [
+    "Api"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/AuthorStats/**"
+   ],
+   "tests": [
+    "AuthorStats"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Backup/**"
+   ],
+   "tests": [
+    "Backup"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Blocklisting/**"
+   ],
+   "tests": [
+    "Blocklisting"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Books/**"
+   ],
+   "tests": [
+    "Books"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Commands/**"
+   ],
+   "tests": [
+    "Commands"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Configuration/**"
+   ],
+   "tests": [
+    "Configuration"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/CustomFormats/**"
+   ],
+   "tests": [
+    "CustomFormats"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Datastore/**"
+   ],
+   "tests": [
+    "Datastore"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/DecisionEngine/**"
+   ],
+   "tests": [
+    "DecisionEngine"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/DiskSpace/**"
+   ],
+   "tests": [
+    "DiskSpace"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Download/**"
+   ],
+   "tests": [
+    "Download"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Extras/**"
+   ],
+   "tests": [
+    "Extras"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/HealthCheck/**"
+   ],
+   "tests": [
+    "HealthCheck"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/History/**"
+   ],
+   "tests": [
+    "History"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Housekeeping/**"
+   ],
+   "tests": [
+    "Housekeeping"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Http/**"
+   ],
+   "tests": [
+    "Http"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/ImportLists/**"
+   ],
+   "tests": [
+    "ImportLists"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/IndexerSearch/**"
+   ],
+   "tests": [
+    "IndexerSearch"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Indexers/**"
+   ],
+   "tests": [
+    "Indexers"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Jobs/**"
+   ],
+   "tests": [
+    "Jobs"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/MediaCover/**"
+   ],
+   "tests": [
+    "MediaCover"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/MediaFiles/**"
+   ],
+   "tests": [
+    "MediaFiles"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Messaging/**"
+   ],
+   "tests": [
+    "Messaging"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/MetadataSource/**"
+   ],
+   "tests": [
+    "MetadataSource"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Notifications/**"
+   ],
+   "tests": [
+    "Notifications"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Organizer/**"
+   ],
+   "tests": [
+    "Organizer"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Parser/**"
+   ],
+   "tests": [
+    "Parser"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/PendingImport/**"
+   ],
+   "tests": [
+    "PendingImport"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Profiles/**"
+   ],
+   "tests": [
+    "Profiles"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Queue/**"
+   ],
+   "tests": [
+    "Queue"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/RemotePathMappings/**"
+   ],
+   "tests": [
+    "RemotePathMappings"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/RootFolders/**"
+   ],
+   "tests": [
+    "RootFolders"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/ThingiProvider/**"
+   ],
+   "tests": [
+    "ThingiProvider"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Update/**"
+   ],
+   "tests": [
+    "Update"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Utilities/**"
+   ],
+   "tests": [
+    "Utilities"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  },
+  {
+   "paths": [
+    "src/Chaptarr.Core.Test/Validation/**"
+   ],
+   "tests": [
+    "Validation"
+   ],
+   "jobs": [
+    "dotnet"
+   ]
+  }
+ ]
+}

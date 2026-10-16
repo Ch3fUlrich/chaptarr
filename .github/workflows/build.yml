@@ -5,8 +5,15 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+    # `labeled` re-runs CI when merge-ready is added: that run is the FULL suite.
+    types: [opened, synchronize, reopened, labeled]
   workflow_call:
   workflow_dispatch:
+    inputs:
+      full:
+        description: Run the full suite (a dispatch is always a full run)
+        type: boolean
+        default: true
 
 # Tests only, never publishes. PRs and merges are both validated automatically, but
 # nothing reaches users until release.yml is run by hand; docker-publish.yml is
@@ -23,20 +30,27 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            platform: linux
-          - os: windows-latest
-            platform: win
-          - os: macos-latest
-            platform: osx
+  # CI-SMART-SELECT (D-1475): a PR push runs only what its diff needs (map:
+  # .github/smart-ci.json). The FULL suite runs on the merge-ready label,
+  # workflow_dispatch, every push, every release call, and whenever the selection is
+  # unknown or a workflow / dependency / CI file changed. Pinned to a SHA of the
+  # shared workflow.
+  smart:
+    name: Smart CI select
+    uses: Ch3fUlrich/AutoOS/.github/workflows/smart-ci.yml@46d0483300ba360eb838c87fcb6f09bf46059640
+    with:
+      selector_repo: Ch3fUlrich/AutoOS
+      selector_ref: 46d0483300ba360eb838c87fcb6f09bf46059640
+      runs_on: ${{ toJSON((github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || 'ubuntu-latest') }}
+      # every non-PR event (push, release workflow_call, dispatch) is a full run
+      full: ${{ github.event_name != 'pull_request' }}
 
+  # Cheap repo guards (formerly the first steps of every build leg): once, always.
+  guards:
+    name: Repo guards
+    needs: smart
+    if: ${{ needs.smart.outputs.full == 'true' || fromJSON(needs.smart.outputs.jobs).guards }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || 'ubuntu-latest' }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       with:
@@ -49,7 +63,7 @@ jobs:
           echo "Merge-conflict markers found in tracked files."
           exit 1
         fi
-        python -c "import json; json.load(open('package.json', encoding='utf-8'))"
+        python3 -c "import json; json.load(open('package.json', encoding='utf-8'))"
 
     - name: Guard (version) - package.json and Directory.Build.props in sync
       shell: bash
@@ -95,9 +109,25 @@ jobs:
         fi
 
         python3 build-tools/version_guard.py commit-hygiene --compare-ref "$COMPARE_REF"
-    
+
+  build:
+    needs: smart
+    if: ${{ needs.smart.outputs.full == 'true' || fromJSON(needs.smart.outputs.jobs).dotnet }}
+    # Linux leg on the self-hosted slot (same-repo runs only), Windows and macOS on
+    # the hosted images as before. A selected PR run builds the Linux leg only.
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.smart.outputs.full == 'true' && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-latest"]') }}
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
     - name: Setup .NET
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+      env:
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
       with:
         dotnet-version: 10.0.x
 
@@ -123,23 +153,38 @@ jobs:
       run: dotnet build src/Chaptarr.NoTests.sln --configuration Release --no-restore
     
     - name: Test
-      run: dotnet test src/Chaptarr.Core.Test/Chaptarr.Core.Test.csproj --configuration Release --no-restore --verbosity normal
+      shell: bash
+      env:
+        FULL: ${{ needs.smart.outputs.full }}
+        SELECTED: ${{ needs.smart.outputs.tests }}   # Chaptarr.Core.Test sub-namespaces; empty = everything
+      run: |
+        filter=()
+        if [ "$FULL" != "true" ] && [ -n "$SELECTED" ]; then
+          expr=""
+          for t in $SELECTED; do expr="${expr:+$expr|}FullyQualifiedName~Chaptarr.Core.Test.$t."; done
+          filter=(--filter "$expr")
+        fi
+        dotnet test src/Chaptarr.Core.Test/Chaptarr.Core.Test.csproj --configuration Release --no-restore --verbosity normal "${filter[@]}"
     
     - name: Publish
+      if: ${{ needs.smart.outputs.full == 'true' }}
       run: |
         dotnet publish src/NzbDrone.Console/Chaptarr.Console.csproj -c Release -f net10.0 -o ./publish/Chaptarr
         dotnet publish src/NzbDrone.Update/Chaptarr.Update.csproj -c Release -f net10.0 -o ./publish/Chaptarr/Chaptarr.Update
     
     - name: Upload artifacts
+      if: ${{ needs.smart.outputs.full == 'true' }}
       uses: actions/upload-artifact@v4
       with:
-        name: chaptarr-${{ matrix.platform }}
+        name: chaptarr-${{ matrix.os == 'ubuntu-latest' && 'linux' || matrix.os == 'windows-latest' && 'win' || 'osx' }}
         path: ./publish/
         retention-days: 7
         if-no-files-found: error
 
   postgres-migrations:
-    runs-on: ubuntu-latest
+    needs: smart
+    if: ${{ needs.smart.outputs.full == 'true' || fromJSON(needs.smart.outputs.jobs).postgres }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || 'ubuntu-latest' }}
     services:
       postgres:
         image: postgres:16
@@ -147,7 +192,7 @@ jobs:
           POSTGRES_USER: chaptarr
           POSTGRES_PASSWORD: chaptarr
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
           --health-cmd "pg_isready -U chaptarr"
           --health-interval 10s
@@ -159,6 +204,8 @@ jobs:
 
     - name: Setup .NET
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+      env:
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
       with:
         dotnet-version: 10.0.x
 
@@ -173,11 +220,12 @@ jobs:
       shell: bash
       env:
         PGPASSWORD: chaptarr
+        PGPORT: ${{ job.services.postgres.ports['5432'] }}
       run: |
         set -euo pipefail
-        psql -h localhost -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-main";'
-        psql -h localhost -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-log";'
-        psql -h localhost -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-cache";'
+        psql -h localhost -p "$PGPORT" -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-main";'
+        psql -h localhost -p "$PGPORT" -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-log";'
+        psql -h localhost -p "$PGPORT" -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-cache";'
 
     - name: Restore dependencies
       run: dotnet restore src/Chaptarr.NoTests.sln
@@ -189,7 +237,7 @@ jobs:
       shell: bash
       env:
         Chaptarr__Postgres__Host: localhost
-        Chaptarr__Postgres__Port: 5432
+        Chaptarr__Postgres__Port: ${{ job.services.postgres.ports['5432'] }}
         Chaptarr__Postgres__User: chaptarr
         Chaptarr__Postgres__Password: chaptarr
         Chaptarr__Postgres__MainDb: chaptarr-main
@@ -226,3 +274,53 @@ jobs:
         fi
 
         echo "PostgreSQL migrations smoke test passed."
+
+  merge-gate:
+    name: CI merge gate
+    if: always()
+    needs: [smart, guards, build, postgres-migrations]
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","fleet-ci"]') || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Selected jobs passed; report whether the run was full
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EVENT: ${{ github.event_name }}
+          FULL: ${{ needs.smart.outputs.full }}
+          REASON: ${{ needs.smart.outputs.reason }}
+          RESULTS: smart=${{ needs.smart.result }} guards=${{ needs.guards.result }} build=${{ needs.build.result }} postgres=${{ needs.postgres-migrations.result }}
+        run: |
+          echo "event=$EVENT full=$FULL results=$RESULTS reason=$REASON"
+          ctx="Full suite (merge-ready)"
+          # curl, not gh: the self-hosted runner image has no gh, and a status that is
+          # never posted would leave the full-suite requirement unenforced.
+          post() {
+            # the token goes in through stdin (-H @-), never into argv where ps could show it
+            printf 'Authorization: Bearer %s\n' "$GH_TOKEN" | curl -fsS -X POST -H @- -H "Accept: application/vnd.github+json" \
+              "${GITHUB_API_URL:-https://api.github.com}/repos/$REPO/statuses/$SHA" \
+              -d "{\"state\":\"$1\",\"context\":\"$ctx\",\"description\":\"$2\"}" >/dev/null \
+              || echo "::warning::could not set the $ctx status"
+          }
+          for pair in $RESULTS; do
+            name="${pair%%=*}"; r="${pair#*=}"
+            case "$r" in
+              success) ;;
+              skipped)
+                if [ "$FULL" = true ]; then
+                  post failure "full run but $name was skipped"; echo "::error::full run but $name was skipped"; exit 1
+                fi ;;
+              *) post failure "$name ended $r"; echo "::error::$name ended $r"; exit 1 ;;
+            esac
+          done
+          if [ "$EVENT" = pull_request ] && [ "$FULL" != true ]; then
+            post pending "selected-only run: add the merge-ready label for the full suite"
+            echo "::notice::selected-only run passed; the full suite (label merge-ready or dispatch full=true) is still required before merge"
+          elif [ "$FULL" = true ]; then
+            post success "full suite passed"
+          else
+            post failure "not a full run"; echo "::error::not a pull request and not a full run: refusing to report success"; exit 1
+          fi
