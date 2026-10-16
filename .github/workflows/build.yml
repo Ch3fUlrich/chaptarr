@@ -62,7 +62,7 @@ jobs:
           echo "Merge-conflict markers found in tracked files."
           exit 1
         fi
-        python -c "import json; json.load(open('package.json', encoding='utf-8'))"
+        python3 -c "import json; json.load(open('package.json', encoding='utf-8'))"
 
     - name: Guard (version) - package.json and Directory.Build.props in sync
       shell: bash
@@ -127,6 +127,8 @@ jobs:
 
     - name: Setup .NET
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+      env:
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
       with:
         dotnet-version: 10.0.x
 
@@ -191,7 +193,7 @@ jobs:
           POSTGRES_USER: chaptarr
           POSTGRES_PASSWORD: chaptarr
         ports:
-          - 5432:5432
+          - 5432/tcp
         options: >-
           --health-cmd "pg_isready -U chaptarr"
           --health-interval 10s
@@ -203,6 +205,8 @@ jobs:
 
     - name: Setup .NET
       uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+      env:
+        DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
       with:
         dotnet-version: 10.0.x
 
@@ -217,11 +221,12 @@ jobs:
       shell: bash
       env:
         PGPASSWORD: chaptarr
+        PGPORT: ${{ job.services.postgres.ports['5432'] }}
       run: |
         set -euo pipefail
-        psql -h localhost -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-main";'
-        psql -h localhost -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-log";'
-        psql -h localhost -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-cache";'
+        psql -h localhost -p "$PGPORT" -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-main";'
+        psql -h localhost -p "$PGPORT" -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-log";'
+        psql -h localhost -p "$PGPORT" -U chaptarr -d postgres -c 'CREATE DATABASE "chaptarr-cache";'
 
     - name: Restore dependencies
       run: dotnet restore src/Chaptarr.NoTests.sln
@@ -233,7 +238,7 @@ jobs:
       shell: bash
       env:
         Chaptarr__Postgres__Host: localhost
-        Chaptarr__Postgres__Port: 5432
+        Chaptarr__Postgres__Port: ${{ job.services.postgres.ports['5432'] }}
         Chaptarr__Postgres__User: chaptarr
         Chaptarr__Postgres__Password: chaptarr
         Chaptarr__Postgres__MainDb: chaptarr-main
@@ -292,7 +297,9 @@ jobs:
         run: |
           echo "event=$EVENT full=$FULL results=$RESULTS reason=$REASON"
           ctx="Full suite (merge-ready)"
-          post() { gh api "repos/$REPO/statuses/$SHA" -f state="$1" -f context="$ctx" -f description="$2" >/dev/null || echo "::warning::could not set the $ctx status"; }
+          post() {
+            curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json"               "https://api.github.com/repos/$REPO/statuses/$SHA"               -d "$(python3 -c 'import json,sys; print(json.dumps({"state": sys.argv[1], "context": sys.argv[2], "description": sys.argv[3]}))' "$1" "$ctx" "$2")" >/dev/null               || echo "::warning::could not set the $ctx status"
+          }
           for r in $RESULTS; do
             case "$r" in
               success|skipped) ;;
