@@ -69,12 +69,14 @@ namespace NzbDrone.Core.Indexers.Newznab
             var pageableRequests = new IndexerPageableRequestChain();
             var searchCategories = SearchMediaTypeHelper.FilterCategoriesForMediaType(Settings.Categories, SearchMediaTypeHelper.GetRequestedMediaType(searchCriteria));
 
-            var authorQuery = searchCriteria.AuthorQuery;
-            var bookQuery = searchCriteria.BookQuery;
-            var transliteratedAuthor = searchCriteria.AuthorQueryTransliterated ?? authorQuery;
-            var transliteratedBook = searchCriteria.BookQueryTransliterated ?? bookQuery;
             var mainTitle = BookSearchCriteria.GetMainSearchTitle(searchCriteria.BookTitle, searchCriteria.Author?.Name);
             var hasBookTitle = !string.IsNullOrWhiteSpace(mainTitle);
+
+            // BookQuery throws on an empty title, so only evaluate the queries when there is one.
+            var authorQuery = hasBookTitle ? searchCriteria.AuthorQuery : null;
+            var bookQuery = hasBookTitle ? searchCriteria.BookQuery : null;
+            var transliteratedAuthor = hasBookTitle ? searchCriteria.AuthorQueryTransliterated ?? authorQuery : null;
+            var transliteratedBook = hasBookTitle ? searchCriteria.BookQueryTransliterated ?? bookQuery : null;
 
             if (SupportsBookSearch && hasBookTitle)
             {
