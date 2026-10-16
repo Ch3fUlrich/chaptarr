@@ -188,7 +188,7 @@ jobs:
 
   postgres-migrations:
     needs: smart
-    if: ${{ needs.smart.outputs.full == 'true' || fromJSON(needs.smart.outputs.jobs).postgres }}
+    if: ${{ vars.CI_SKIP_POSTGRES != 'true' && (needs.smart.outputs.full == 'true' || fromJSON(needs.smart.outputs.jobs).postgres) }}
     runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.CI_LINUX_RUNS_ON && fromJSON(vars.CI_LINUX_RUNS_ON) || 'ubuntu-latest' }}
     services:
       postgres:
