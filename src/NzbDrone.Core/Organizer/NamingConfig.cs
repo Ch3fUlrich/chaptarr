@@ -28,6 +28,7 @@ namespace NzbDrone.Core.Organizer
         public bool RenameBooks { get; set; }
         public bool ReplaceIllegalCharacters { get; set; }
         public ColonReplacementFormat ColonReplacementFormat { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore]
         public string StandardBookFormat { get; set; }
         public string AuthorFolderFormat { get; set; }
 
