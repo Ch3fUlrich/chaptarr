@@ -29,6 +29,10 @@ concurrency:
 permissions:
   contents: read
 
+# measurement base only: this repo's develop fails restore on new NuGet advisories
+env:
+  NuGetAudit: 'false'
+
 jobs:
   # CI-SMART-SELECT (D-1475): a PR push runs only what its diff needs (map:
   # .github/smart-ci.json). The FULL suite runs on the merge-ready label,
