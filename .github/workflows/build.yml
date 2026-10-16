@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'lane/**', 'smartci-*' ]
     # `labeled` re-runs CI when merge-ready is added: that run is the FULL suite.
     types: [opened, synchronize, reopened, labeled]
   workflow_call:
